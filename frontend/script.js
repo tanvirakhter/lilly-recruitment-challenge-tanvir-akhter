@@ -3,8 +3,7 @@ const API_URL = "http://127.0.0.1:8000";
 let allMedicines = [];
 let activeMedicine = null;
 let modalMode = "edit"; 
-let openCard = null; 
-
+let openCard = null;
 
 let modalOverlay,
   modalTitle,
@@ -29,6 +28,12 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+function getErrorMessageFromResponse(data, fallback) {
+  if (!data) return fallback;
+  return data.detail || data.error || fallback;
+}
+
+
 async function fetchAveragePrice() {
   const avgEl = document.getElementById("avg-price");
   const countEl = document.getElementById("count");
@@ -38,8 +43,13 @@ async function fetchAveragePrice() {
 
   try {
     const res = await fetch(`${API_URL}/medicines/average-price`);
-    if (!res.ok) throw new Error("Failed to fetch average price");
     const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        getErrorMessageFromResponse(data, "Failed to fetch average price")
+      );
+    }
 
     if (data.average_price === null) {
       avgEl.textContent = "N/A";
@@ -60,11 +70,15 @@ async function fetchAllMedicines() {
 
   try {
     const res = await fetch(`${API_URL}/medicines`);
-    if (!res.ok) throw new Error("Failed to fetch medicines");
-
     const data = await res.json();
-    const medicines = data.medicines || [];
 
+    if (!res.ok) {
+      throw new Error(
+        getErrorMessageFromResponse(data, "Failed to fetch medicines")
+      );
+    }
+
+    const medicines = data.medicines || [];
     allMedicines = medicines;
     openCard = null; 
 
@@ -102,6 +116,9 @@ function renderMedicines(medicines) {
     const card = document.createElement("div");
     card.className = "medicine-card";
     card.dataset.name = originalName;
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-expanded", "false");
 
     card.innerHTML = `
       <div class="med-main">
@@ -121,35 +138,45 @@ function renderMedicines(medicines) {
     const updateBtn = card.querySelector(".update-btn");
     const deleteBtn = card.querySelector(".delete-btn");
 
-   
-    card.addEventListener("click", (e) => {
-      if (e.target.closest("button")) return;
-
-
+    const toggleCard = () => {
       if (openCard && openCard !== card) {
         const prevActions = openCard.querySelector(".med-actions");
         if (prevActions) prevActions.classList.add("hidden");
         openCard.classList.remove("expanded");
+        openCard.setAttribute("aria-expanded", "false");
       }
 
       const isHidden = actions.classList.contains("hidden");
       if (isHidden) {
         actions.classList.remove("hidden");
         card.classList.add("expanded");
+        card.setAttribute("aria-expanded", "true");
         openCard = card;
       } else {
         actions.classList.add("hidden");
         card.classList.remove("expanded");
+        card.setAttribute("aria-expanded", "false");
         openCard = null;
       }
+    };
+
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      toggleCard();
     });
 
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (e.target.closest("button")) return;
+        toggleCard();
+      }
+    });
 
     updateBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       handleUpdateMedicine(med);
     });
-
 
     deleteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -172,7 +199,8 @@ function setupCreateForm() {
 
     const formData = new FormData(form);
     const price = parseFloat(formData.get("price"));
-    const name = String(formData.get("name") || "").trim();
+    const nameRaw = String(formData.get("name") || "");
+    const name = nameRaw.trim();
 
     if (!name) {
       messageEl.textContent = "Medicine name cannot be empty.";
@@ -186,15 +214,36 @@ function setupCreateForm() {
       return;
     }
 
+    const lowerName = name.toLowerCase();
+    const isDuplicate = allMedicines.some((med) => {
+      const existing = (med.name || "").trim().toLowerCase();
+      return existing === lowerName;
+    });
+
+    if (isDuplicate) {
+      messageEl.textContent =
+        "A medicine with this name already exists. Please choose a different name.";
+      messageEl.className = "error";
+      return;
+    }
+
     try {
+      const cleanFormData = new FormData();
+      cleanFormData.append("name", name);
+      cleanFormData.append("price", String(price));
+
       const res = await fetch(`${API_URL}/create`, {
         method: "POST",
-        body: formData,
+        body: cleanFormData,
       });
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        messageEl.textContent = data.error || "Failed to create medicine.";
+        const msg = getErrorMessageFromResponse(
+          data,
+          "Failed to create medicine."
+        );
+        messageEl.textContent = msg;
         messageEl.className = "error";
         return;
       }
@@ -206,6 +255,13 @@ function setupCreateForm() {
 
       await fetchAllMedicines();
       await fetchAveragePrice();
+
+      setTimeout(() => {
+        if (messageEl.classList.contains("success")) {
+          messageEl.textContent = "";
+          messageEl.className = "";
+        }
+      }, 3000);
     } catch (err) {
       console.error(err);
       messageEl.textContent = "Network error. Please try again.";
@@ -271,15 +327,26 @@ function setupCollapsible() {
 
   if (!toggleBtn || !container) return;
 
+  container.classList.add("collapsed");
+  container.style.maxHeight = "0px";
+
   toggleBtn.addEventListener("click", () => {
     const isCollapsed = container.classList.contains("collapsed");
 
     if (isCollapsed) {
       container.classList.remove("collapsed");
+      container.style.maxHeight = container.scrollHeight + "px";
       toggleBtn.textContent = "Hide list";
     } else {
       container.classList.add("collapsed");
+      container.style.maxHeight = "0px";
       toggleBtn.textContent = "Show list";
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (!container.classList.contains("collapsed")) {
+      container.style.maxHeight = container.scrollHeight + "px";
     }
   });
 }
@@ -301,18 +368,21 @@ function setupEditModal() {
 
   if (!modalOverlay) return;
 
-
   modalOverlay.addEventListener("click", (e) => {
     if (e.target === modalOverlay) {
       closeEditModal();
     }
   });
 
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modalOverlay.classList.contains("hidden")) {
+      closeEditModal();
+    }
+  });
 
   editCancelBtn.addEventListener("click", () => {
     closeEditModal();
   });
-
 
   editForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -348,7 +418,10 @@ function setupEditModal() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        editMessage.textContent = data.error || "Failed to update medicine.";
+        editMessage.textContent = getErrorMessageFromResponse(
+          data,
+          "Failed to update medicine."
+        );
         return;
       }
 
@@ -360,7 +433,6 @@ function setupEditModal() {
       editMessage.textContent = "Network error. Please try again.";
     }
   });
-
 
   deleteNoBtn.addEventListener("click", () => {
     closeEditModal();
@@ -382,8 +454,10 @@ function setupEditModal() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        deleteConfirmText.textContent =
-          data.error || "Failed to delete medicine.";
+        deleteConfirmText.textContent = getErrorMessageFromResponse(
+          data,
+          "Failed to delete medicine."
+        );
         return;
       }
 
@@ -409,7 +483,6 @@ function openEditModal(med, mode = "edit") {
       modalSubtitle.textContent =
         "Edit the name or price of this medicine, then save your changes.";
     }
-
 
     editForm.classList.remove("hidden");
     editCancelBtn.classList.remove("hidden");
@@ -440,6 +513,7 @@ function closeEditModal() {
   modalOverlay.classList.add("hidden");
   activeMedicine = null;
   editMessage.textContent = "";
+  deleteConfirmText.textContent = "";
   deleteConfirmBlock.classList.add("hidden");
   editForm.classList.remove("hidden"); 
   editCancelBtn.classList.remove("hidden");

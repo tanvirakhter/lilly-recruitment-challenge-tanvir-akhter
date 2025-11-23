@@ -1,16 +1,18 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 """
 This module defines a FastAPI application for managing a list of medicines.
 It provides endpoints to retrieve all medicines, retrieve a single medicine by name,
-and create a new medicine.
+and create, update, or delete a medicine.
+
 Endpoints:
 - GET /medicines: Retrieve all medicines from the data.json file.
-- GET /medicines/average-price: Calculate the average price of all medicines that have a valid numeric price from the data.json file.
 - GET /medicines/{name}: Retrieve a single medicine by name from the data.json file.
+- GET /medicines/average-price: Calculate the average price of medicines with valid prices.
 - POST /create: Create a new medicine with a specified name and price.
-- POST /update: Update the price of a medicine with a specified name.
+- POST /update: Update the name and/or price of a medicine with a specified name.
 - DELETE /delete: Delete a medicine with a specified name.
+
 Functions:
 - get_all_meds: Reads the data.json file and returns all medicines.
 - get_average_price: Calculates the average price of all medicines that have a valid numeric price from the data.json file.
@@ -18,11 +20,14 @@ Functions:
 - create_med: Reads the data.json file, adds a new medicine, and writes the updated data back to the file.
 - update_med: Reads the data.json file, updates the price of a medicine, and writes the updated data back to the file.
 - delete_med: Reads the data.json file, deletes a medicine, and writes the updated data back to the file.
-Usage:
-Run this module directly to start the FastAPI application.
+-Usage:
+-Run this module directly to start the FastAPI application.
+
 """
 import uvicorn
 import json
+from pathlib import Path
+from typing import Any, Dict
 
 app = FastAPI()
 
@@ -34,6 +39,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+DATA_FILE = Path("data.json")
+
+
+def read_db() -> Dict[str, Any]:
+    """
+    Helper function to safely read the JSON database.
+    Ensures we always return a dict with a 'medicines' list.
+    """
+    if not DATA_FILE.exists():
+        return {"medicines": []}
+
+    try:
+        with DATA_FILE.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Data file is corrupted.")
+
+    if "medicines" not in data or not isinstance(data["medicines"], list):
+        data["medicines"] = []
+
+    return data
+
+
+def write_db(data: Dict[str, Any]) -> None:
+    """
+    Helper function to safely write the JSON database.
+    """
+    with DATA_FILE.open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
 @app.get("/medicines")
 def get_all_meds():
     """
@@ -41,9 +77,9 @@ def get_all_meds():
     Returns:
         dict: A dictionary of all medicines
     """
-    with open('data.json') as meds:
-        data = json.load(meds)
+    data = read_db()
     return data
+
 
 @app.get("/medicines/average-price")
 def get_average_price():
@@ -51,8 +87,7 @@ def get_average_price():
     Calculate the average price of all medicines that have a valid numeric price.
     Returns the average and the count of medicines used.
     """
-    with open("data.json") as meds:
-        db = json.load(meds)
+    db = read_db()
 
     prices = []
     for med in db.get("medicines", []):
@@ -66,6 +101,7 @@ def get_average_price():
     avg = sum(prices) / len(prices)
     return {"average_price": avg, "count": len(prices)}
 
+
 @app.get("/medicines/{name}")
 def get_single_med(name: str):
     """
@@ -75,13 +111,13 @@ def get_single_med(name: str):
     Returns:
         dict: A dictionary containing the medicine details
     """
-    with open('data.json') as meds:
-        data = json.load(meds)
-        for med in data["medicines"]:
-            print(med)
-            if med['name'] == name:
-                return med
-    return {"error": "Medicine not found"}
+    db = read_db()
+    for med in db.get("medicines", []):
+        if med.get("name") == name:
+            return med
+
+    raise HTTPException(status_code=404, detail="Medicine not found")
+
 
 @app.post("/create")
 def create_med(name: str = Form(...), price: float = Form(...)):
@@ -94,18 +130,42 @@ def create_med(name: str = Form(...), price: float = Form(...)):
     Returns:
         dict: A message confirming the medicine was created successfully.
     """
-    with open('data.json', 'r+') as meds:
-        current_db = json.load(meds)
-        new_med = {"name": name, "price": price}
-        current_db["medicines"].append(new_med)
-        meds.seek(0)
-        json.dump(current_db, meds)
-        meds.truncate()
-        
-    return {"message": f"Medicine created successfully with name: {name}"}
+    clean_name = name.strip() if name else ""
+
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Medicine name cannot be empty.")
+    if price is None or price <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Price must be a positive number greater than 0.",
+        )
+
+    db = read_db()
+    meds_list = db.setdefault("medicines", [])
+
+    existing_names = {
+        (m.get("name") or "").strip().lower()
+        for m in meds_list
+    }
+    if clean_name.lower() in existing_names:
+        raise HTTPException(
+            status_code=400,
+            detail="A medicine with this name already exists.",
+        )
+
+    new_med = {"name": clean_name, "price": price}
+    meds_list.append(new_med)
+    write_db(db)
+
+    return {"message": f"Medicine created successfully with name: {clean_name}"}
+
 
 @app.post("/update")
-def update_med(name: str = Form(...), price: float = Form(...)):
+def update_med(
+    name: str = Form(...),
+    price: float = Form(...),
+    new_name: str = Form(None),
+):
     """
     This function updates the price of a medicine with the specified name.
     It expects the name and price to be provided as form data.
@@ -115,16 +175,53 @@ def update_med(name: str = Form(...), price: float = Form(...)):
     Returns:
         dict: A message confirming the medicine was updated successfully.
     """
-    with open('data.json', 'r+') as meds:
-        current_db = json.load(meds)
-        for med in current_db["medicines"]:
-            if med['name'] == name:
-                med['price'] = price
-                meds.seek(0)
-                json.dump(current_db, meds)
-                meds.truncate()
-                return {"message": f"Medicine updated successfully with name: {name}"}
-    return {"error": "Medicine not found"}
+    original_name = name.strip() if name else ""
+    new_name_clean = new_name.strip() if new_name is not None else None
+
+    if not original_name:
+        raise HTTPException(status_code=400, detail="Medicine name cannot be empty.")
+    if price is None or price <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Price must be a positive number greater than 0.",
+        )
+    if new_name is not None and not new_name_clean:
+        raise HTTPException(
+            status_code=400,
+            detail="New medicine name cannot be empty.",
+        )
+
+    db = read_db()
+    meds_list = db.get("medicines", [])
+
+    original_key = original_name.lower()
+
+    if new_name_clean:
+        new_key = new_name_clean.lower()
+        for m in meds_list:
+            existing_name = (m.get("name") or "").strip()
+            if not existing_name:
+                continue
+            existing_key = existing_name.lower()
+            if existing_key == new_key and existing_key != original_key:
+                raise HTTPException(
+                    status_code=400,
+                    detail="A medicine with this name already exists.",
+                )
+
+    for med in meds_list:
+        med_name = (med.get("name") or "").strip()
+        if med_name.lower() == original_key:
+            if new_name_clean:
+                med["name"] = new_name_clean
+            med["price"] = price
+            write_db(db)
+            return {
+                "message": f"Medicine updated successfully with name: {med['name']}"
+            }
+
+    raise HTTPException(status_code=404, detail="Medicine not found")
+
 
 @app.delete("/delete")
 def delete_med(name: str = Form(...)):
@@ -136,18 +233,29 @@ def delete_med(name: str = Form(...)):
     Returns:
         dict: A message confirming the medicine was deleted successfully.
     """
-    with open('data.json', 'r+') as meds:
-        current_db = json.load(meds)
-        for med in current_db["medicines"]:
-            if med['name'] == name:
-                current_db["medicines"].remove(med)
-                meds.seek(0)
-                json.dump(current_db, meds)
-                meds.truncate()
-                return {"message": f"Medicine deleted successfully with name: {name}"}
-    return {"error": "Medicine not found"}
+    clean_name = name.strip() if name else ""
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Medicine name cannot be empty.")
 
-# Add your average function here
+    db = read_db()
+    meds_list = db.get("medicines", [])
+    target_key = clean_name.lower()
+
+    remaining = [
+        med
+        for med in meds_list
+        if (med.get("name") or "").strip().lower() != target_key
+    ]
+
+    if len(remaining) == len(meds_list):
+
+        raise HTTPException(status_code=404, detail="Medicine not found")
+
+    db["medicines"] = remaining
+    write_db(db)
+
+    return {"message": f"Medicine deleted successfully with name: {clean_name}"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

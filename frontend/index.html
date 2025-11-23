@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="icon" href="../frontend/assets/favicon.ico" type="image/x-icon" />
-    <link rel="stylesheet" href="style.css">
-</head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medicine Tracker</title>
 
+  <!-- Favicon -->
+  <link rel="icon" href="../frontend/assets/favicon.ico" type="image/x-icon" />
+
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
 <body>
   <div class="page-wrapper">
+    <!-- Header with logo + title + disclaimer -->
     <header class="header">
       <div class="header-row">
         <img src="../frontend/assets/logo.svg" alt="Logo" class="logo" />
@@ -21,6 +25,7 @@
       </p>
     </header>
 
+    <!-- 1. Overview -->
     <section class="section" id="overview-section">
       <h2>Overview</h2>
       <div class="overview-cards">
@@ -35,6 +40,7 @@
       </div>
     </section>
 
+    <!-- 2. Search Medicine -->
     <section class="section" id="search-section">
       <h2>Search Medicine</h2>
       <div class="search-row">
@@ -42,7 +48,7 @@
           type="text"
           id="search-input"
           class="search-input"
-          placeholder="Search by medicine name (e.g. Elixirium)..."
+          placeholder="Search by medicine name (e.g. Elixirium)"
         />
         <button
           type="button"
@@ -55,6 +61,7 @@
       <div id="search-result" class="search-result"></div>
     </section>
 
+    <!-- 3. All Medicines (collapsible) -->
     <section class="section" id="all-meds-section">
       <div class="section-header">
         <h2>All Medicines</h2>
@@ -74,7 +81,8 @@
       </div>
     </section>
 
-     <section class="section" id="add-section">
+    <!-- 4. Add a New Medicine -->
+    <section class="section" id="add-section">
       <h2>Add a New Medicine</h2>
 
       <form id="create-form" class="create-form">
@@ -95,19 +103,22 @@
             required
           />
         </div>
-        <button type="submit" class="primary-btn">Add Medicine</button>
+        <button type="submit" class="primary-btn">Add</button>
         <p id="message"></p>
       </form>
     </section>
   </div>
 
+  <!-- ===== Update / Delete Modal (hidden on load) ===== -->
   <div id="edit-modal-overlay" class="modal-overlay hidden">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title" tabindex="-1">
+      <!-- Header (used for both modes) -->
       <h2 id="edit-modal-title" class="modal-title">Update medicine</h2>
       <p class="modal-subtitle">
         Edit the name or price of this medicine, then save your changes.
       </p>
 
+      <!-- UPDATE VIEW (used when clicking "Update") -->
       <form id="edit-form" class="edit-form">
         <div class="form-row">
           <label for="edit-name">Medicine Name</label>
@@ -145,6 +156,7 @@
         </div>
       </form>
 
+      <!-- DELETE CONFIRM VIEW (no form – shown when pressing Delete) -->
       <div id="delete-confirm" class="delete-confirm hidden">
         <p id="delete-confirm-text" class="modal-subtitle"></p>
         <div class="modal-actions">
@@ -167,8 +179,10 @@
     </div>
   </div>
 
+  <!-- Toast (not used heavily but kept) -->
   <div id="toast" class="toast hidden"></div>
 
-    <script src="script.js"></script>
+  <!-- Main JS -->
+  <script src="script.js"></script>
 </body>
 </html>
