@@ -53,3 +53,444 @@ h1 {
   width: auto;
   object-fit: contain;
 }
+
+
+.section {
+  background: #ffffff;
+  padding: 20px 20px 24px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  border-top: 4px solid #e2231a;
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.section h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  color: #1a1a1a;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.overview-card {
+  background: #fdf8f8;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #f1d6d4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-card .label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a43a32;
+}
+
+.overview-card .value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #e2231a;
+}
+
+#med-list {
+  margin-top: 15px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.medicine-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 14px 14px 16px;
+  border: 1px solid #ebebeb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+  animation: fadeInUp 0.35s ease-out both;
+  cursor: pointer;
+}
+
+.medicine-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #e2231a, #ff6955);
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.medicine-card h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  color: #1f1f1f;
+}
+
+.medicine-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.med-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.med-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.med-toggle-icon {
+  font-size: 0.9rem;
+  color: #b5b5b5;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.medicine-card.expanded .med-toggle-icon {
+  transform: rotate(180deg);
+  color: #e2231a;
+}
+
+.med-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.med-actions.hidden {
+  display: none;
+}
+
+.medicine-card:hover,
+.medicine-card:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: #e2231a33;
+  background-color: #fffafa;
+}
+
+.medicine-card:hover::before,
+.medicine-card:focus-within::before {
+  opacity: 1;
+}
+
+.medicine-card:hover .med-toggle-icon {
+  color: #8c8c8c;
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-row {
+  width: 100%;
+}
+
+.create-form input {
+  display: block;
+  width: 100%;
+  padding: 10px 11px;
+  margin: 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-form input:focus {
+  outline: none;
+  border-color: #e2231a;
+  box-shadow: 0 0 0 3px rgba(226, 35, 26, 0.15);
+}
+
+.primary-btn {
+  align-self: flex-start;
+  padding: 10px 18px;
+  border: none;
+  background: #1b7f3b;
+  color: white;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.primary-btn.small {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+}
+
+.primary-btn::after {
+  content: "›";
+  font-size: 1rem;
+  transform: translateY(1px);
+}
+
+.primary-btn.small::after,
+.secondary-btn::after {
+  content: none;
+}
+
+.primary-btn:hover {
+  background: #1b7f3b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.secondary-btn {
+  background: #ffffff;
+  color: #e2231a;
+  border: 1px solid #e2231a;
+}
+
+.secondary-btn:hover {
+  background: #fff5f4;
+  color: #c81e17;
+}
+
+.danger-btn {
+  background: #b00020;
+}
+
+.danger-btn:hover {
+  background: #8e001a;
+}
+
+#message {
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+#message.success {
+  color: #1b7f3b;
+}
+
+#message.error {
+  color: #c81e17;
+}
+
+.error {
+  color: #c81e17;
+}
+
+.search-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 11px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #e2231a;
+  box-shadow: 0 0 0 3px rgba(226, 35, 26, 0.15);
+}
+
+.search-result {
+  margin-top: 12px;
+}
+
+.collapsible {
+  margin-top: 12px;
+  max-height: 800px;
+  overflow: hidden;
+  transition: max-height 0.15s ease;
+}
+
+.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 8px;
+}
+
+.hidden {
+  display: none;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  background: #333;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 60;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  position: relative;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 22px 24px 20px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+  animation: fadeInUp 0.25s ease-out both;
+}
+
+.modal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: auto;
+  height: 3px;
+  width: 72px;
+  border-radius: 999px;
+  background: #e2231a;
+}
+
+.modal-title {
+  margin: 6px 0 4px 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.modal-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 0.86rem;
+  color: #777;
+}
+
+.edit-form .form-row {
+  margin-bottom: 10px;
+}
+
+.edit-form label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+}
+
+.edit-form input {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid #d2d2d2;
+  font-size: 0.92rem;
+  background: #fafafa;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.edit-form input:focus {
+  outline: none;
+  border-color: #e2231a;
+  box-shadow: 0 0 0 3px rgba(226, 35, 26, 0.15);
+  background: #ffffff;
+}
+
+.modal-message {
+  margin: 4px 0 0 0;
+  font-size: 0.8rem;
+  min-height: 16px;
+  color: #c81e17;
+}
+
+.modal-actions {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.delete-confirm {
+  margin-top: 8px;
+}
+
+.delete-confirm .modal-subtitle {
+  margin-bottom: 14px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-overlay.hidden {
+  display: none !important;
+}
