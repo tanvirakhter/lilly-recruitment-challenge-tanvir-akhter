@@ -43,6 +43,27 @@ def get_all_meds():
         data = json.load(meds)
     return data
 
+@app.get("/medicines/average-price")
+def get_average_price():
+    """
+    Calculate the average price of all medicines that have a valid numeric price.
+    Returns the average and the count of medicines used.
+    """
+    with open("data.json") as meds:
+        db = json.load(meds)
+
+    prices = []
+    for med in db.get("medicines", []):
+        price = med.get("price")
+        if isinstance(price, (int, float)):
+            prices.append(price)
+
+    if not prices:
+        return {"average_price": None, "count": 0}
+
+    avg = sum(prices) / len(prices)
+    return {"average_price": avg, "count": len(prices)}
+
 @app.get("/medicines/{name}")
 def get_single_med(name: str):
     """
@@ -125,27 +146,6 @@ def delete_med(name: str = Form(...)):
     return {"error": "Medicine not found"}
 
 # Add your average function here
-
-@app.get("/medicines/average-price")
-def get_average_price():
-    """
-    Calculate the average price of all medicines that have a valid numeric price.
-    Returns the average and the count of medicines used.
-    """
-    with open("data.json") as meds:
-        db = json.load(meds)
-
-    prices = []
-    for med in db.get("medicines", []):
-        price = med.get("price")
-        if isinstance(price, (int, float)):
-            prices.append(price)
-
-    if not prices:
-        return {"average_price": None, "count": 0}
-
-    avg = sum(prices) / len(prices)
-    return {"average_price": avg, "count": len(prices)}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
