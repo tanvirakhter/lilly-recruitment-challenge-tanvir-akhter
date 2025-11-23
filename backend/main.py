@@ -6,12 +6,14 @@ It provides endpoints to retrieve all medicines, retrieve a single medicine by n
 and create a new medicine.
 Endpoints:
 - GET /medicines: Retrieve all medicines from the data.json file.
+- GET /medicines/average-price: Calculate the average price of all medicines that have a valid numeric price from the data.json file.
 - GET /medicines/{name}: Retrieve a single medicine by name from the data.json file.
 - POST /create: Create a new medicine with a specified name and price.
 - POST /update: Update the price of a medicine with a specified name.
 - DELETE /delete: Delete a medicine with a specified name.
 Functions:
 - get_all_meds: Reads the data.json file and returns all medicines.
+- get_average_price: Calculates the average price of all medicines that have a valid numeric price from the data.json file.
 - get_single_med: Reads the data.json file and returns a single medicine by name.
 - create_med: Reads the data.json file, adds a new medicine, and writes the updated data back to the file.
 - update_med: Reads the data.json file, updates the price of a medicine, and writes the updated data back to the file.
