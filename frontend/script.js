@@ -3,7 +3,7 @@ const API_URL = "http://127.0.0.1:8000";
 let allMedicines = [];
 let activeMedicine = null;
 let modalMode = "edit"; 
-let openCard = null;
+let openCard = null; 
 
 let modalOverlay,
   modalTitle,
@@ -31,6 +31,14 @@ document.addEventListener("DOMContentLoaded", () => {
 function getErrorMessageFromResponse(data, fallback) {
   if (!data) return fallback;
   return data.detail || data.error || fallback;
+}
+
+
+function updateAllMedsMaxHeightIfOpen() {
+  const container = document.getElementById("all-meds-container");
+  if (container && !container.classList.contains("collapsed")) {
+    container.style.maxHeight = container.scrollHeight + "px";
+  }
 }
 
 
@@ -84,14 +92,17 @@ async function fetchAllMedicines() {
 
     if (!medicines.length) {
       listEl.innerHTML = "<p>No medicines found.</p>";
+      updateAllMedsMaxHeightIfOpen();
       return;
     }
 
     renderMedicines(medicines);
+    updateAllMedsMaxHeightIfOpen(); 
   } catch (err) {
     console.error(err);
     listEl.innerHTML =
       "<p class='error'>Error loading medicines. Please try again.</p>";
+    updateAllMedsMaxHeightIfOpen();
   }
 }
 
@@ -158,6 +169,8 @@ function renderMedicines(medicines) {
         card.setAttribute("aria-expanded", "false");
         openCard = null;
       }
+
+      updateAllMedsMaxHeightIfOpen();
     };
 
     card.addEventListener("click", (e) => {
@@ -345,9 +358,7 @@ function setupCollapsible() {
   });
 
   window.addEventListener("resize", () => {
-    if (!container.classList.contains("collapsed")) {
-      container.style.maxHeight = container.scrollHeight + "px";
-    }
+    updateAllMedsMaxHeightIfOpen();
   });
 }
 
