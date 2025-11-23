@@ -1,10 +1,15 @@
 const API_URL = "http://127.0.0.1:8000";
 
+// Keep an in-memory copy of all medicines so search and validation can reuse it.
 let allMedicines = [];
+// Track which medicine is currently being edited / deleted in the modal.
 let activeMedicine = null;
-let modalMode = "edit"; 
-let openCard = null; 
+// "edit" or "delete" – controls what the modal shows.
+let modalMode = "edit";
+// Remember which card is expanded so only one stays open at a time.
+let openCard = null;
 
+// References to modal elements are initialised later in setupEditModal.
 let modalOverlay,
   modalTitle,
   modalSubtitle,
@@ -19,6 +24,7 @@ let modalOverlay,
   deleteNoBtn;
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Load initial data and wire up all interactive behaviour once the DOM is ready.
   fetchAveragePrice();
   fetchAllMedicines();
   setupCreateForm();
@@ -27,20 +33,20 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEditModal();
 });
 
-
+// Try to pull a useful error message from the API response, with a simple fallback.
 function getErrorMessageFromResponse(data, fallback) {
   if (!data) return fallback;
   return data.detail || data.error || fallback;
 }
 
-
+// Recalculate the "all medicines" container height when it is expanded,
+// so the slide animation stays smooth even after content changes.
 function updateAllMedsMaxHeightIfOpen() {
   const container = document.getElementById("all-meds-container");
   if (container && !container.classList.contains("collapsed")) {
     container.style.maxHeight = container.scrollHeight + "px";
   }
 }
-
 
 async function fetchAveragePrice() {
   const avgEl = document.getElementById("avg-price");
@@ -59,6 +65,7 @@ async function fetchAveragePrice() {
       );
     }
 
+    // When there are no valid prices, show a clear "N/A" instead of crashing.
     if (data.average_price === null) {
       avgEl.textContent = "N/A";
     } else {
@@ -88,7 +95,8 @@ async function fetchAllMedicines() {
 
     const medicines = data.medicines || [];
     allMedicines = medicines;
-    openCard = null; 
+    // Reset the open card whenever we re-render the list.
+    openCard = null;
 
     if (!medicines.length) {
       listEl.innerHTML = "<p>No medicines found.</p>";
@@ -97,7 +105,7 @@ async function fetchAllMedicines() {
     }
 
     renderMedicines(medicines);
-    updateAllMedsMaxHeightIfOpen(); 
+    updateAllMedsMaxHeightIfOpen();
   } catch (err) {
     console.error(err);
     listEl.innerHTML =
@@ -106,7 +114,7 @@ async function fetchAllMedicines() {
   }
 }
 
-
+// Build the DOM for each medicine card and attach handlers for toggling, editing, and deleting.
 function renderMedicines(medicines) {
   const listEl = document.getElementById("med-list");
   listEl.innerHTML = "";
@@ -149,7 +157,9 @@ function renderMedicines(medicines) {
     const updateBtn = card.querySelector(".update-btn");
     const deleteBtn = card.querySelector(".delete-btn");
 
+    // Handle expanding / collapsing a single card at a time.
     const toggleCard = () => {
+      // Close the previously opened card if it's not this one.
       if (openCard && openCard !== card) {
         const prevActions = openCard.querySelector(".med-actions");
         if (prevActions) prevActions.classList.add("hidden");
@@ -173,11 +183,13 @@ function renderMedicines(medicines) {
       updateAllMedsMaxHeightIfOpen();
     };
 
+    // Clicking on the card toggles the extra actions, but not when clicking buttons.
     card.addEventListener("click", (e) => {
       if (e.target.closest("button")) return;
       toggleCard();
     });
 
+    // Keyboard support so the card behaves like a button.
     card.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -200,7 +212,7 @@ function renderMedicines(medicines) {
   });
 }
 
-
+// Handle creating a new medicine from the form at the top of the page.
 function setupCreateForm() {
   const form = document.getElementById("create-form");
   const messageEl = document.getElementById("message");
@@ -215,6 +227,7 @@ function setupCreateForm() {
     const nameRaw = String(formData.get("name") || "");
     const name = nameRaw.trim();
 
+    // Basic frontend validation to give faster feedback.
     if (!name) {
       messageEl.textContent = "Medicine name cannot be empty.";
       messageEl.className = "error";
@@ -227,6 +240,7 @@ function setupCreateForm() {
       return;
     }
 
+    // Prevent duplicate names on the client side before hitting the API.
     const lowerName = name.toLowerCase();
     const isDuplicate = allMedicines.some((med) => {
       const existing = (med.name || "").trim().toLowerCase();
@@ -266,9 +280,11 @@ function setupCreateForm() {
       messageEl.className = "success";
       form.reset();
 
+      // Refresh the list and KPI after creating a new entry.
       await fetchAllMedicines();
       await fetchAveragePrice();
 
+      // Let the success message show briefly, then clear it so the UI stays clean.
       setTimeout(() => {
         if (messageEl.classList.contains("success")) {
           messageEl.textContent = "";
@@ -283,7 +299,7 @@ function setupCreateForm() {
   });
 }
 
-
+// Simple "type ahead" search on the client side.
 function setupSearch() {
   const input = document.getElementById("search-input");
   const clearBtn = document.getElementById("search-clear-btn");
@@ -333,7 +349,7 @@ function setupSearch() {
   });
 }
 
-
+// Collapsible wrapper around the "All medicines" section.
 function setupCollapsible() {
   const toggleBtn = document.getElementById("toggle-all-meds-btn");
   const container = document.getElementById("all-meds-container");
@@ -357,12 +373,13 @@ function setupCollapsible() {
     }
   });
 
+  // Recalculate height when the window resizes so the animation still looks right.
   window.addEventListener("resize", () => {
     updateAllMedsMaxHeightIfOpen();
   });
 }
 
-
+// Wire up the shared modal used for both editing and deleting.
 function setupEditModal() {
   modalOverlay = document.getElementById("edit-modal-overlay");
   modalTitle = document.getElementById("edit-modal-title");
@@ -379,12 +396,14 @@ function setupEditModal() {
 
   if (!modalOverlay) return;
 
+  // Clicking outside the modal content closes it.
   modalOverlay.addEventListener("click", (e) => {
     if (e.target === modalOverlay) {
       closeEditModal();
     }
   });
 
+  // Allow closing the modal with Escape.
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !modalOverlay.classList.contains("hidden")) {
       closeEditModal();
@@ -395,6 +414,7 @@ function setupEditModal() {
     closeEditModal();
   });
 
+  // Handle "save" in edit mode.
   editForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!activeMedicine) return;
@@ -445,10 +465,12 @@ function setupEditModal() {
     }
   });
 
+  // In delete mode, "No" simply closes the modal.
   deleteNoBtn.addEventListener("click", () => {
     closeEditModal();
   });
 
+  // Handle the final delete confirmation.
   deleteYesBtn.addEventListener("click", async () => {
     if (!activeMedicine) return;
 
@@ -482,6 +504,7 @@ function setupEditModal() {
   });
 }
 
+// Open the modal either in "edit" or "delete" mode.
 function openEditModal(med, mode = "edit") {
   activeMedicine = med;
   modalMode = mode;
@@ -520,17 +543,18 @@ function openEditModal(med, mode = "edit") {
   modalOverlay.classList.remove("hidden");
 }
 
+// Reset modal state back to default.
 function closeEditModal() {
   modalOverlay.classList.add("hidden");
   activeMedicine = null;
   editMessage.textContent = "";
   deleteConfirmText.textContent = "";
   deleteConfirmBlock.classList.add("hidden");
-  editForm.classList.remove("hidden"); 
+  editForm.classList.remove("hidden");
   editCancelBtn.classList.remove("hidden");
 }
 
-
+// Small helpers that decide which mode to open the modal in.
 function handleUpdateMedicine(med) {
   openEditModal(med, "edit");
 }

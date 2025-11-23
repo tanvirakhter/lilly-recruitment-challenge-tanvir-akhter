@@ -31,6 +31,7 @@ from typing import Any, Dict
 
 app = FastAPI()
 
+# Allow the browser frontend to talk to this API without CORS issues.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Keep a single reference to the JSON "database" file.
 DATA_FILE = Path("data.json")
 
 
@@ -47,6 +49,7 @@ def read_db() -> Dict[str, Any]:
     Helper function to safely read the JSON database.
     Ensures we always return a dict with a 'medicines' list.
     """
+    # If the file doesn't exist yet, return an empty structure so the app can still run.
     if not DATA_FILE.exists():
         return {"medicines": []}
 
@@ -54,8 +57,10 @@ def read_db() -> Dict[str, Any]:
         with DATA_FILE.open("r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError:
+        # If the JSON is broken, surface a clear server-side error to the client.
         raise HTTPException(status_code=500, detail="Data file is corrupted.")
 
+    # Normalise the shape of the data so the rest of the code can assume a list.
     if "medicines" not in data or not isinstance(data["medicines"], list):
         data["medicines"] = []
 
@@ -66,6 +71,7 @@ def write_db(data: Dict[str, Any]) -> None:
     """
     Helper function to safely write the JSON database.
     """
+    # Overwrite the file with pretty-printed JSON for easier debugging.
     with DATA_FILE.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
@@ -92,9 +98,11 @@ def get_average_price():
     prices = []
     for med in db.get("medicines", []):
         price = med.get("price")
+        # Only include prices that are already numeric to avoid crashes.
         if isinstance(price, (int, float)):
             prices.append(price)
 
+    # If no valid prices are found, return a safe fallback.
     if not prices:
         return {"average_price": None, "count": 0}
 
@@ -116,6 +124,7 @@ def get_single_med(name: str):
         if med.get("name") == name:
             return med
 
+    # If no medicine matches the requested name, return a 404.
     raise HTTPException(status_code=404, detail="Medicine not found")
 
 
@@ -130,11 +139,13 @@ def create_med(name: str = Form(...), price: float = Form(...)):
     Returns:
         dict: A message confirming the medicine was created successfully.
     """
+    # Trim whitespace early so we consistently validate the "real" name.
     clean_name = name.strip() if name else ""
 
     if not clean_name:
         raise HTTPException(status_code=400, detail="Medicine name cannot be empty.")
     if price is None or price <= 0:
+        # Avoid storing invalid or free medicines by mistake.
         raise HTTPException(
             status_code=400,
             detail="Price must be a positive number greater than 0.",
@@ -143,6 +154,7 @@ def create_med(name: str = Form(...), price: float = Form(...)):
     db = read_db()
     meds_list = db.setdefault("medicines", [])
 
+    # Build a case-insensitive set of existing names to prevent duplicates.
     existing_names = {
         (m.get("name") or "").strip().lower()
         for m in meds_list
@@ -181,11 +193,13 @@ def update_med(
     if not original_name:
         raise HTTPException(status_code=400, detail="Medicine name cannot be empty.")
     if price is None or price <= 0:
+        # Keep the same validation rules as in the create endpoint.
         raise HTTPException(
             status_code=400,
             detail="Price must be a positive number greater than 0.",
         )
     if new_name is not None and not new_name_clean:
+        # If the client passes a new_name field, it shouldn't be only spaces.
         raise HTTPException(
             status_code=400,
             detail="New medicine name cannot be empty.",
@@ -196,6 +210,7 @@ def update_med(
 
     original_key = original_name.lower()
 
+    # If the name is changing, make sure we don't collide with another entry.
     if new_name_clean:
         new_key = new_name_clean.lower()
         for m in meds_list:
@@ -209,6 +224,7 @@ def update_med(
                     detail="A medicine with this name already exists.",
                 )
 
+    # Find the medicine and update in place.
     for med in meds_list:
         med_name = (med.get("name") or "").strip()
         if med_name.lower() == original_key:
@@ -241,12 +257,14 @@ def delete_med(name: str = Form(...)):
     meds_list = db.get("medicines", [])
     target_key = clean_name.lower()
 
+    # Build a new list without the target medicine instead of mutating in-place.
     remaining = [
         med
         for med in meds_list
         if (med.get("name") or "").strip().lower() != target_key
     ]
 
+    # If the size didn't change, nothing was removed.
     if len(remaining) == len(meds_list):
 
         raise HTTPException(status_code=404, detail="Medicine not found")
@@ -258,4 +276,5 @@ def delete_med(name: str = Form(...)):
 
 
 if __name__ == "__main__":
+    # Run the FastAPI app with uvicorn when this file is executed directly.
     uvicorn.run(app, host="0.0.0.0", port=8000)
