@@ -1,6 +1,6 @@
 # Lilly Technical Challenge Documentation
 
-**Tanvir Akhter Shakib**
+Author: **Tanvir Akhter Shakib**
 
 ## Approach
 
