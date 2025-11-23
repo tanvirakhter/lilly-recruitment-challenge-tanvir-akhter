@@ -17,16 +17,39 @@ body {
 
 /* Disclaimer styles. DO NOT REMOVE OR EDIT UNLESS ABSOLUTELY NECESSARY */
 .disclaimer {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    background-color: black;
-    color: white;
-    text-align: center;
-    padding: 0.5rem;
-    z-index: 1000;
-    font-weight: bold;
-    height: 30px;
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
 }
 
 /* ---- Your custom styles below ---- */
+
+.page-wrapper {
+  max-width: 960px;
+  margin: 60px auto 40px;
+  padding: 0 16px 40px;
+}
+
+.header {
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+h1 {
+  margin: 0 0 8px 0;
+  color: #000000;
+  font-size: 2rem;
+  letter-spacing: 0.03em;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
